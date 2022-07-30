@@ -16,3 +16,6 @@ ACCESS_TOKEN_SECRET=
 This bot can then be run locally by running ```node index.js```
 
 ## Deploying
+
+## Feature Compliance
+All functionality new or old must comply with [Twitter's rules](https://help.twitter.com/en/rules-and-policies/twitter-automation), [developer agreement](https://developer.twitter.com/en/developer-terms/agreement-and-policy), and [automation rules](https://help.twitter.com/en/rules-and-policies/twitter-rules). Failure to do so will cause suspension or termination of our project from Twitter.

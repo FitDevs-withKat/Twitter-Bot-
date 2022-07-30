@@ -13,6 +13,6 @@ ACCESS_TOKEN=
 ACCESS_TOKEN_SECRET=
 ```
 
-This bot can then be run locally by running ```node app.js```
+This bot can then be run locally by running ```node index.js```
 
 ## Deploying

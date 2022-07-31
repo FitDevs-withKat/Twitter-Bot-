@@ -53,6 +53,7 @@
     "tunnel-agent": "^0.6.0",
     "tweetnacl": "^0.14.5",
     "twit": "^2.2.11",
+    "twitter-api-v2": "^1.12.3",
     "uri-js": "^4.4.1",
     "uuid": "^3.4.0",
     "verror": "^1.10.0"

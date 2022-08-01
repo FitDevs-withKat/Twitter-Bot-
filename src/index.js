@@ -11,7 +11,7 @@ const twitter = new TwitterApi({
 function search(query, lastTweetId) {
     try {
         //rate limit is 180 requests every 15 minutes
-        return twitter.v2.search(query, {max_results: 10, since_id: lastTweetId});
+        return twitter.v2.search(query, {max_results: 100, since_id: lastTweetId});
     } catch (error) {
         console.log("Failed to search tweets ", error)
         throw error;
@@ -20,10 +20,10 @@ function search(query, lastTweetId) {
 
 function retweet(tweetId) {
     try {
-        //rate limit is 75 requests every 15 minutes
+        //rate limit is 50 requests every 15 minutes
         return twitter.v2.retweet(process.env.BOT_USER_ID, tweetId);
     } catch (error) {
-        console.log("Failed to retweet ", error)
+        console.log("Failed to retweet ", error);
     }
 }
 
@@ -35,26 +35,32 @@ function getLatestRetweet() {
             expansions: "referenced_tweets.id"
         })
     } catch (error) {
-        console.log("Failed to retweet ", error)
+        console.log("Failed to retweet ", error);
     }
 }
 
 function iterateAndRetweetResults(data) {
-    if (data.done) {
-        console.log("done")
-        return;
-    }
-    let index = 0;
-    const intervalId = setInterval(() => {
-        if (index === data.meta.result_count - 1) {
-            clearInterval(intervalId);
-            data.next().then(result => iterateAndRetweetResults(result));
-        }
-        retweet(data.tweets[index].id)
-        console.log("retweeting", data.tweets[index].id);
-        index++;
-    }, 13000);
-
+    return new Promise((resolve) => {
+        let currentData = data;
+        let index = 0;
+        const intervalId = setInterval(async () => {
+            if (currentData.done) {
+                clearInterval(intervalId)
+                resolve();
+                return;
+            }
+            console.log('Retweeting tweet ID', currentData.tweets[index].id)
+            if (index === currentData.meta.result_count - 1) {
+                currentData = await currentData.next();
+                index = 0;
+                return;
+            }
+            await retweet(data.tweets[index].id);
+            index++;
+            //15 mins / 50 requests = 1 request every 18 seconds
+            //+ 1 to avoid hitting rate limit
+        }, 19000);
+    });
 }
 
 async function startBot() {
@@ -62,8 +68,12 @@ async function startBot() {
     const latestId = response.tweets?.[0]?.referenced_tweets[0]?.id;
 
     const data = await search("#fitdevs", latestId);
-    iterateAndRetweetResults(data);
+    await iterateAndRetweetResults(data);
 
+    console.log("Done retweeting, searching again in 30 minutes")
+    setTimeout(() => {
+        startBot();
+    }, process.env.SEARCH_INTERVAL * 60000);
 }
 
 startBot();

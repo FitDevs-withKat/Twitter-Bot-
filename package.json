@@ -4,6 +4,7 @@
   "description": "Fitdevs Twitter Bot",
   "main": "index.js",
   "dependencies": {
+    "dotenv": "^16.0.1",
     "twitter-api-v2": "^1.12.3"
   },
   "scripts": {

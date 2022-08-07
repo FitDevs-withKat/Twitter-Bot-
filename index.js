@@ -75,5 +75,3 @@ async function startBot() {
 
     console.log("Done");
 }
-
-startBot()

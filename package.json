@@ -4,17 +4,18 @@
   "description": "Fitdevs Twitter Bot",
   "main": "index.js",
   "dependencies": {
+    "@google-cloud/functions-framework": "^3.1.2",
     "dotenv": "^16.0.1",
     "twitter-api-v2": "^1.12.3"
   },
   "scripts": {
-    "start": "node ./src/index.js"
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/FitDevs-withKat/Twitter-Bot-.git"
   },
-  "author": "",
+  "author": "Kyle Kerlew",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/FitDevs-withKat/Twitter-Bot-/issues"

@@ -15,6 +15,12 @@ ACCESS_TOKEN_SECRET=
 
 This bot can then be run locally by running ```node index.js```
 
+## Cron-job 
+By utilizing Cron-job, we can call our cloud function to run at a customized interval. 
+
+## Google Cloud 
+Uploaded our app onto google cloud as a cloud function; App will start up whenever it is called by Cron-Job. 
+
 ## Deploying
 
 ## Feature Compliance

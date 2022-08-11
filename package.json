@@ -9,7 +9,7 @@
     "twitter-api-v2": "^1.12.3"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "functions-framework --target=startBot"
   },
   "repository": {
     "type": "git",

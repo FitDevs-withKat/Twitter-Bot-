@@ -1,8 +1,5 @@
 const {TwitterApi} = require('twitter-api-v2');
 require('dotenv').config();
-const functions = require('@google-cloud/functions-framework');
-
-functions.http('twitter-bot', startBot);
 
 const twitter = new TwitterApi({
     appKey: process.env.CONSUMER_KEY,
@@ -46,11 +43,16 @@ function iterateAndRetweetResults(data) {
     return new Promise((resolve) => {
         let index = 0;
         const intervalId = setInterval(async () => {
-            if (index === data.length - 1) {
+            if (data.length < 1 || index === data.length - 1) {
                 clearInterval(intervalId);
                 resolve();
             }
-            console.log('Retweeting tweet ID', data[index].id);
+            if (!data[index]) {
+                //prevent continuation with empty data
+                return;
+            }
+
+            console.log('Retweeting tweet ID', data[index]?.id);
             await retweet(data[index].id);
             index++;
 
@@ -60,7 +62,7 @@ function iterateAndRetweetResults(data) {
     });
 }
 
-async function startBot() {
+exports.startBot = async (req, res) => {
     console.log("Starting bot");
     const response = await getLatestRetweet();
     const latestId = response.tweets?.[0]?.referenced_tweets[0]?.id;
@@ -72,6 +74,7 @@ async function startBot() {
     //To ensure that the tweet we last RT'd is always the most recent
     sortedArr.reverse();
     await iterateAndRetweetResults(sortedArr);
+    console.log("Done")
 
-    console.log("Done");
+    res.send("Done")
 }

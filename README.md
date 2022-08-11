@@ -11,15 +11,18 @@ CONSUMER_KEY=
 CONSUMER_SECRET=
 ACCESS_TOKEN=
 ACCESS_TOKEN_SECRET=
+BOT_USER_ID=1549040078823034882
 ```
 
-This bot can then be run locally by running ```node index.js```
+You can manually add a line of code to call the function `startBot` in index.js then run `node index.js` in your terminal to start the application. **Please be cautious running this bot locally while the cron-job is active.**
+## Cron-Job 
+By utilizing a free third-party site called [cron-job](https://cron-job.org/), we can call our cloud function via a REST API endpoint to run at a customized interval (currently configured to run every hour). 
 
-## Cron-job 
-By utilizing Cron-job, we can call our cloud function to run at a customized interval. 
 
-## Google Cloud 
-Uploaded our app onto google cloud as a cloud function; App will start up whenever it is called by Cron-Job. 
+## Google Cloud
+Our bot is uploaded onto Google Cloud as a cloud function. The bot will start up whenever it is called by Cron-Job.
+A REST endpoint is exposed through an API Gateway that is separate from the cloud function. This gives us the ability for our function to be called by cron-job with an API Key.
+The reason this is necessary is because Google Cloud Functions don't natively support long-lived authentication.
 
 ## Deploying
 

@@ -41,7 +41,6 @@ async function iterateOverInterval(interval, data, callback) {
 
 async function startBot(req, res) {
     //Respond immediately so that Cron-job doesn't time out (max 30s timeout))
-    res.send("Bot Started")
     console.log("Starting bot");
 
     const response = await getLatestRetweet(twitter, {
@@ -66,6 +65,7 @@ async function startBot(req, res) {
         console.log('Retweeting tweet ID', tweet?.id);
         await retweet(twitter, tweet.id);
     });
+    res.send("Bot Started");
 
     console.log("Done")
 }

@@ -6,10 +6,11 @@
   "dependencies": {
     "@google-cloud/functions-framework": "^3.1.2",
     "dotenv": "^16.0.1",
+    "mongodb": "^4.8.1",
     "twitter-api-v2": "^1.12.3"
   },
   "scripts": {
-    "start": "functions-framework --target=startBot"
+    "start": "functions-framework --target=runCampaign"
   },
   "repository": {
     "type": "git",

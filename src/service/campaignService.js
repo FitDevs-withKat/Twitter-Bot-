@@ -23,7 +23,8 @@ async function upsertLatestEnteredTweetId(tweetId) {
 
 function getNumbersFromTweet(tweet) {
     //Grab the number before the word " min", so they can min, mins, minutes, etc.
-    const regex = /\d+(?= min)/;
+    //'gi' is a flag that indicates case-insensitivity
+    const regex = /\d+[ ]?(?=min)/gi;
     const result = tweet.text.match(regex);
     if (!result) {
         return undefined;

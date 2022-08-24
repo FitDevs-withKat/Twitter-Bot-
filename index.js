@@ -1,4 +1,3 @@
-const {TwitterApi} = require('twitter-api-v2');
 const {retweet, search, getLatestRetweet, replyToTweet} = require("./src/service/twitterService");
 const {
     upsertTimeEntry,
@@ -7,14 +6,6 @@ const {
     upsertLatestEnteredTweetId, getTotalCampaignMinutes
 } = require("./src/service/campaignService");
 const {mongodb} = require("./src/service/mongodbService");
-require('dotenv').config();
-
-const twitter = new TwitterApi({
-    appKey: process.env.CONSUMER_KEY,
-    appSecret: process.env.CONSUMER_SECRET,
-    accessToken: process.env.ACCESS_TOKEN,
-    accessSecret: process.env.ACCESS_TOKEN_SECRET
-});
 
 
 async function iterateOverInterval(interval, data, callback) {
@@ -43,7 +34,7 @@ async function startBot(req, res) {
     //Respond immediately so that Cron-job doesn't time out (max 30s timeout))
     console.log("Starting bot");
 
-    const response = await getLatestRetweet(twitter, {
+    const response = await getLatestRetweet({
         exclude: "replies",
         "tweet.fields": "referenced_tweets",
         expansions: "referenced_tweets.id"
@@ -63,7 +54,7 @@ async function startBot(req, res) {
     //+ 1 to avoid hitting rate limit
     await iterateOverInterval(19000, sortedTweets, async function (tweet) {
         console.log('Retweeting tweet ID', tweet?.id);
-        await retweet(twitter, tweet.id);
+        await retweet(tweet.id);
     });
     res.send("Bot Started");
 
@@ -77,19 +68,29 @@ async function runCampaign(req, res) {
 
     const tweets = [];
     const lastEntered = await getLastEnteredTweetId();
-    //Most recent will be first in the array
-    const data = await search(twitter, '#OneMillionMinutes -is:retweet', lastEntered?.tweetId, {expansions: 'author_id'});
 
+    //Most recent will be first in the array
+    const data = await search('#OneMillionMinutes -is:retweet', undefined, {
+        expansions: 'author_id,',
+        'user.fields': 'username'
+    });
     for await (const result of data) {
         const numbersFromTweet = getNumbersFromTweet(result);
         if (numbersFromTweet) {
             tweets.push(numbersFromTweet);
         } else {
-            //TODO: Tweet is not in correct format, number is missing
+            try {
+                //TODO: This will 403 if the tweet is not unique. I'd like to add the author's username in the response so that it's not static
+                await replyToTweet(result.id, `Your tweet was skipped because the bot couldn't parse your entry. @dev_nerd_2 will investigate and follow up.`);
+            } catch (e) {
+                console.error('reply failed', e);
+            }
         }
     }
     if (tweets.length === 0) {
         await mongodb.disconnect();
+        console.log("Done");
+        res.send("Bot started");
         return;
     }
     //15 mins / 200 requests = 1 request every 4.5 seconds
@@ -99,7 +100,7 @@ async function runCampaign(req, res) {
             console.log(tweet.id)
             const {total} = await upsertTimeEntry(tweet.twitterUserId, tweet.number);
             const communityTotal = await getTotalCampaignMinutes();
-            await replyToTweet(twitter, tweet.id, `Your entry has been logged. You have logged ${total} total minutes! The community has logged ${communityTotal} minutes toward our goal of one million.`);
+            await replyToTweet(tweet.id, `Your entry has been logged. You have logged ${total} total minutes! The community has logged ${communityTotal} minutes toward our goal of one million.`);
         } catch (err) {
             console.error("Something went wrong while logging data", err)
         }

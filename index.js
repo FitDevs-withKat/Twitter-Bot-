@@ -24,8 +24,6 @@ async function iterateOverInterval(interval, data, callback) {
             await callback(data[index])
             index++;
 
-            //15 mins / 50 requests = 1 request every 18 seconds
-            //+ 1 to avoid hitting rate limit
         }, interval);
     });
 }
@@ -70,9 +68,8 @@ async function runCampaign(req, res) {
     const lastEntered = await getLastEnteredTweetId();
 
     //Most recent will be first in the array
-    const data = await search('#OneMillionMinutes -is:retweet', undefined, {
-        expansions: 'author_id,',
-        'user.fields': 'username'
+    const data = await search('#OneMillionMinutes -is:retweet', lastEntered?.tweetId, {
+        expansions: 'author_id,'
     });
     for await (const result of data) {
         const numbersFromTweet = getNumbersFromTweet(result);

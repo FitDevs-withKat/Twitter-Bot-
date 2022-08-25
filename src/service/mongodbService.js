@@ -12,7 +12,7 @@ function upsert(query, updateQuery, collection, options) {
 }
 
 //https://www.mongodb.com/docs/drivers/node/current/fundamentals/aggregation/
-async function getAggregateTotal(query, collection, field) {
+async function getAggregateTotal(query, collection) {
     const aggCursor = client.db(dbName).collection(collection).aggregate([
         {$group: {_id: null, total: {$sum: "$total"}}}
     ]);

@@ -14,7 +14,7 @@ async function getLastEnteredTweetId() {
 }
 
 function getTotalCampaignMinutes() {
-    return mongodb.getAggregateTotal({}, "campaign_data", "total");
+    return mongodb.getAggregateTotal({}, "campaign_data");
 }
 
 async function upsertLatestEnteredTweetId(tweetId) {

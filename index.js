@@ -1,3 +1,4 @@
+require('dotenv').config();
 const {retweet, search, getLatestRetweet, replyToTweet} = require("./src/service/twitterService");
 const {
     upsertTimeEntry,
@@ -6,7 +7,6 @@ const {
     upsertLatestEnteredTweetId, getTotalCampaignMinutes
 } = require("./src/service/campaignService");
 const {mongodb} = require("./src/service/mongodbService");
-
 
 async function iterateOverInterval(interval, data, callback) {
     return new Promise((resolve) => {
@@ -29,7 +29,6 @@ async function iterateOverInterval(interval, data, callback) {
 }
 
 async function startBot(req, res) {
-    //Respond immediately so that Cron-job doesn't time out (max 30s timeout))
     console.log("Starting bot");
 
     const response = await getLatestRetweet({
@@ -76,12 +75,8 @@ async function runCampaign(req, res) {
         if (numbersFromTweet) {
             tweets.push(numbersFromTweet);
         } else {
-            try {
-                //TODO: This will 403 if the tweet is not unique. I'd like to add the author's username in the response so that it's not static
-                await replyToTweet(result.id, `Your tweet was skipped because the bot couldn't parse your entry. @dev_nerd_2 will investigate and follow up.`);
-            } catch (e) {
-                console.error('reply failed', e);
-            }
+            //TODO: This will 403 if the tweet is not unique. I'd like to add the author's username in the response so that it's not static
+            await replyToTweet(result.id, `Your tweet was skipped because the bot couldn't parse your entry. @dev_nerd_2 will investigate and follow up.`);
         }
     }
     if (tweets.length === 0) {
@@ -93,22 +88,13 @@ async function runCampaign(req, res) {
     //15 mins / 200 requests = 1 request every 4.5 seconds
     //+ 1 to avoid hitting rate limit
     await iterateOverInterval(5500, tweets, async function (tweet) {
-        try {
-            console.log(tweet.id)
-            const {total} = await upsertTimeEntry(tweet.twitterUserId, tweet.number);
-            const communityTotal = await getTotalCampaignMinutes();
-            await replyToTweet(tweet.id, `Your entry has been logged. You have logged ${total} total minutes! The community has logged ${communityTotal} minutes toward our goal of one million.`);
-        } catch (err) {
-            console.error("Something went wrong while logging data", err)
-        }
+        const {total} = await upsertTimeEntry(tweet.twitterUserId, tweet.number);
+        const communityTotal = await getTotalCampaignMinutes();
+        await replyToTweet(tweet.id, `Your entry has been logged. You have logged ${total} total minutes! The community has logged ${communityTotal} minutes toward our goal of one million.`);
     });
 
     //Update entry with the most recent tweetId so we know where to start our search next time
-    try {
-        await upsertLatestEnteredTweetId(tweets[0].id);
-    } catch (err) {
-        console.error("Something went wrong while updating the last entered tweet", err);
-    }
+    await upsertLatestEnteredTweetId(tweets[0].id);
     await mongodb.disconnect();
     res.send("Bot started");
     console.log("Done");

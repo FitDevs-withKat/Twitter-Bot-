@@ -7,35 +7,35 @@ const twitter = new TwitterApi({
     accessSecret: process.env.ACCESS_TOKEN_SECRET
 });
 
-function search(query, lastTweetId, options = undefined) {
+async function search(query, lastTweetId, options = undefined) {
     try {
         //rate limit is 180 requests every 15 minutes
-        return twitter.v2.search(query, {max_results: 100, since_id: lastTweetId, ...options});
+        return await twitter.v2.search(query, {max_results: 100, since_id: lastTweetId, ...options});
     } catch (err) {
         console.error("Search failed:", err);
     }
 }
 
-function retweet(tweetId) {
+async function retweet(tweetId) {
     try {
         //rate limit is 50 requests every 15 minutes
-        return twitter.v2.retweet(process.env.BOT_USER_ID, tweetId);
+        return await twitter.v2.retweet(process.env.BOT_USER_ID, tweetId);
     } catch (err) {
         console.error("Retweet failed:", err);
     }
 }
 
-function getLatestRetweet(options) {
+async function getLatestRetweet(options) {
     try {
-        return twitter.v2.userTimeline(process.env.BOT_USER_ID, options);
+        return await twitter.v2.userTimeline(process.env.BOT_USER_ID, options);
     } catch (err) {
         console.error("Fetching last retweet failed:", err);
     }
 }
 
-function replyToTweet(tweetId, text) {
+async function replyToTweet(tweetId, text) {
     try {
-        return twitter.v2.reply(text, tweetId);
+        return await twitter.v2.reply(text, tweetId);
     } catch (err) {
         console.error("Reply failed:", err);
     }

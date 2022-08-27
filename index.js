@@ -68,7 +68,7 @@ async function runCampaign(req, res) {
 
     //Most recent will be first in the array
     const data = await search('#OneMillionMinutes -is:retweet', lastEntered?.tweetId, {
-        expansions: 'author_id,'
+        expansions: 'author_id'
     });
     for await (const result of data) {
         const numbersFromTweet = getNumbersFromTweet(result);
@@ -76,6 +76,7 @@ async function runCampaign(req, res) {
             tweets.push(numbersFromTweet);
         } else {
             //TODO: This will 403 if the tweet is not unique. I'd like to add the author's username in the response so that it's not static
+            console.log('need 2 reply');
             await replyToTweet(result.id, `Your tweet was skipped because the bot couldn't parse your entry. @dev_nerd_2 will investigate and follow up.`);
         }
     }
@@ -90,6 +91,7 @@ async function runCampaign(req, res) {
     await iterateOverInterval(5500, tweets, async function (tweet) {
         const {total} = await upsertTimeEntry(tweet.twitterUserId, tweet.number);
         const communityTotal = await getTotalCampaignMinutes();
+        console.log('replying valid');
         await replyToTweet(tweet.id, `Your entry has been logged. You have logged ${total} total minutes! The community has logged ${communityTotal} minutes toward our goal of one million.`);
     });
 

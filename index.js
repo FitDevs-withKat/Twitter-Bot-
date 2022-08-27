@@ -36,6 +36,13 @@ async function startBot(req, res) {
         "tweet.fields": "referenced_tweets",
         expansions: "referenced_tweets.id"
     });
+
+    if (!response) {
+        res.send("Failed to get latest retweet, not starting bot");
+        console.error("Failed to start bot. Couldn't fetch latest retweet");
+        return;
+    }
+
     const latestId = response.tweets?.[0]?.referenced_tweets[0]?.id;
     const sortedTweets = [];
     const data = await search("#FitDevs -is:retweet", latestId);
@@ -50,10 +57,10 @@ async function startBot(req, res) {
     //15 mins / 50 requests = 1 request every 18 seconds
     //+ 1 to avoid hitting rate limit
     await iterateOverInterval(19000, sortedTweets, async function (tweet) {
-        console.log('Retweeting tweet ID', tweet?.id);
+        console.info('Retweeting tweet ID', tweet?.id);
         await retweet(tweet.id);
     });
-    res.send("Bot Started");
+    res.send("Bot Done");
 
     console.log("Done")
 }

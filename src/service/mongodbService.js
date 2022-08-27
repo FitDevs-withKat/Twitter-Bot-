@@ -18,13 +18,16 @@ async function getAggregateTotal(query, collection) {
 }
 
 async function findOne(query, options, collection) {
-    return client.db(dbName).collection(collection).findOne();
+    try {
+        return await client.db(dbName).collection(collection).findOne();
+    } catch (err) {
+        console.error("Failed to run query: findOne", err)
+    }
 }
 
 async function connect() {
     try {
-        await client.connect();
-        console.log("Successfully connected to DB");
+        return await client.connect();
     } catch (error) {
         console.log("Problem connecting to mongo db", error);
         throw error;
@@ -33,8 +36,7 @@ async function connect() {
 
 async function disconnect() {
     try {
-        await client.close();
-        console.log("Successfully closed connection to DB")
+        return await client.close();
     } catch (error) {
         console.log("Problem disconnecting to mongo db", error);
     }

@@ -90,7 +90,7 @@ async function runCampaign(req, res) {
     if (tweets.length === 0) {
         await mongodb.disconnect();
         console.log("Done");
-        res.send("Bot started");
+        res.send("Bot Started but terminated early because there are no new tweets.");
         return;
     }
     //15 mins / 200 requests = 1 request every 4.5 seconds
@@ -98,7 +98,6 @@ async function runCampaign(req, res) {
     await iterateOverInterval(5500, tweets, async function (tweet) {
         const {total} = await upsertTimeEntry(tweet.twitterUserId, tweet.number);
         const communityTotal = await getTotalCampaignMinutes();
-        console.log('replying valid');
         await replyToTweet(tweet.id, `Your entry has been logged. You have logged ${total} total minutes! The community has logged ${communityTotal} minutes toward our goal of one million.`);
     });
 

@@ -10,7 +10,7 @@ const twitter = new TwitterApi({
 async function search(query, lastTweetId, options = undefined) {
     try {
         //rate limit is 180 requests every 15 minutes
-        return await twitter.v2.search(query, {max_results: 100, ...options});
+        return await twitter.v2.search(query, {max_results: 100, since_id: lastTweetId, ...options});
     } catch (err) {
         console.error("Search failed:", err);
     }

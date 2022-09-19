@@ -40,6 +40,14 @@ async function connect() {
     }
 }
 
+async function deleteByQuery(query, collection) {
+    try {
+            return await client.db(dbName).collection(collection).deleteMany(query);
+    } catch (error) {
+        console.log("Problem connecting to mongo db", error);
+    }
+}
+
 async function disconnect() {
     try {
         return await client.close();
@@ -55,6 +63,7 @@ module.exports = {
         upsert,
         findOne,
         disconnect,
-        getAggregateTotal
+        getAggregateTotal,
+        deleteByQuery
     }
 }

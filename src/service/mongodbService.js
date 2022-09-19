@@ -4,12 +4,19 @@ const uri = process.env.DB_URI;
 const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
 const dbName = 'fitdevs';
 
-function upsert(query, updateQuery, collection, options) {
-    return client.db(dbName).collection(collection).findOneAndUpdate(query, updateQuery, {upsert: true, ...options});
+async function upsert(query, updateQuery, collection) {
+    try {
+        return await client.db(dbName).collection(collection).findOneAndUpdate(query, updateQuery, {
+            upsert: true,
+            returnDocument: "after"
+        });
+    } catch (e) {
+        console.error("Failed to upsert", updateQuery, e)
+    }
 }
 
 //https://www.mongodb.com/docs/drivers/node/current/fundamentals/aggregation/
-async function getAggregateTotal(query, collection) {
+async function getAggregateTotal(collection) {
     const aggCursor = client.db(dbName).collection(collection).aggregate([
         {$group: {_id: null, total: {$sum: "$total"}}}
     ]);
@@ -30,7 +37,6 @@ async function connect() {
         return await client.connect();
     } catch (error) {
         console.log("Problem connecting to mongo db", error);
-        throw error;
     }
 }
 

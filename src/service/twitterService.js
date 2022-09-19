@@ -10,9 +10,18 @@ const twitter = new TwitterApi({
 async function search(query, lastTweetId, options = undefined) {
     try {
         //rate limit is 180 requests every 15 minutes
-        return await twitter.v2.search(query, {max_results: 100, since_id: lastTweetId, ...options});
+        return await twitter.v2.search(query, {max_results: 100, ...options});
     } catch (err) {
         console.error("Search failed:", err);
+    }
+}
+
+async function findUserById(userId, fields = undefined) {
+    try {
+        //rate limit is 900 requests every 15 minutes
+        return await twitter.v2.user(userId, fields);
+    } catch (err) {
+        console.error("Search for user failed:", err);
     }
 }
 
@@ -45,6 +54,7 @@ module.exports = {
     search,
     retweet,
     getLatestRetweet,
-    replyToTweet
+    replyToTweet,
+    findUserById
 }
 

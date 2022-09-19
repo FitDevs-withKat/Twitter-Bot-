@@ -16,6 +16,15 @@ async function search(query, lastTweetId, options = undefined) {
     }
 }
 
+async function findUserById(userId, fields = undefined) {
+    try {
+        //rate limit is 900 requests every 15 minutes
+        return await twitter.v2.user(userId, fields);
+    } catch (err) {
+        console.error("Search for user failed:", err);
+    }
+}
+
 async function retweet(tweetId) {
     try {
         //rate limit is 50 requests every 15 minutes
@@ -45,6 +54,7 @@ module.exports = {
     search,
     retweet,
     getLatestRetweet,
-    replyToTweet
+    replyToTweet,
+    findUserById
 }
 

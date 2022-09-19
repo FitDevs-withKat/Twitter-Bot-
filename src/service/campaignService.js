@@ -1,8 +1,11 @@
 const {mongodb} = require("./mongodbService");
 
-async function upsertTimeEntry(authorId, amount) {
-    const {value} = await mongodb.upsert({author_id: authorId}, {$inc: {total: parseInt(amount)}}, "campaign_data", {returnDocument: "after"});
-    return value;
+async function upsertTimeEntry(authorId, amount, username) {
+    const result = await mongodb.upsert({author_id: authorId}, {
+        $inc: {total: parseInt(amount)},
+        $set: {username: username}
+    }, "campaign_data");
+    return result.value;
 }
 
 async function getLastEnteredTweetId() {
@@ -14,7 +17,7 @@ async function getLastEnteredTweetId() {
 }
 
 function getTotalCampaignMinutes() {
-    return mongodb.getAggregateTotal({}, "campaign_data");
+    return mongodb.getAggregateTotal("campaign_data");
 }
 
 async function upsertLatestEnteredTweetId(tweetId) {

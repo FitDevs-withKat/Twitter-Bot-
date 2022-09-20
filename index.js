@@ -106,7 +106,7 @@ async function runCampaign(req, res) {
         const [cumulativeResponse, weeklyResponse] = await Promise.all([
             upsertTimeEntry(tweet.twitterUserId, tweet.number, username),
             upsertTimeEntryWeekly(tweet.twitterUserId, tweet.number, username)
-            ]);
+        ]);
         const communityTotal = await getTotalCampaignMinutes();
         await replyToTweet(tweet.id, `Your entry has been logged. You have logged ${cumulativeResponse.total} total minutes! The community has logged ${communityTotal} minutes toward our goal of one million.`);
     });

@@ -32,17 +32,18 @@ async function findOne(query, options, collection) {
     }
 }
 
-async function connect() {
+async function deleteByQuery(query, collection) {
     try {
-        return await client.connect();
+        return await client.db(dbName).collection(collection).deleteMany(query);
     } catch (error) {
-        console.log("Problem connecting to mongo db", error);
+        console.log("Failed to run deleteByQuery with the following query", query, error);
     }
 }
 
-async function deleteByQuery(query, collection) {
+
+async function connect() {
     try {
-            return await client.db(dbName).collection(collection).deleteMany(query);
+        return await client.connect();
     } catch (error) {
         console.log("Problem connecting to mongo db", error);
     }

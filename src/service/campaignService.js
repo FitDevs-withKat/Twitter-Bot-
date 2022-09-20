@@ -9,8 +9,7 @@ async function upsertTimeEntry(authorId, amount, username, collection = undefine
 }
 
 async function upsertTimeEntryWeekly(authorId, amount, username) {
-    const result = await upsertTimeEntry(authorId, amount, username, "campaign_data_weekly")
-    return result;
+    return await upsertTimeEntry(authorId, amount, username, "campaign_data_weekly");
 }
 
 async function getLastEnteredTweetId() {

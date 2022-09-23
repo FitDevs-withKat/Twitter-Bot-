@@ -32,6 +32,15 @@ async function findOne(query, options, collection) {
     }
 }
 
+async function deleteByQuery(query, collection) {
+    try {
+        return await client.db(dbName).collection(collection).deleteMany(query);
+    } catch (error) {
+        console.log("Failed to run deleteByQuery with the following query", query, error);
+    }
+}
+
+
 async function connect() {
     try {
         return await client.connect();
@@ -55,6 +64,7 @@ module.exports = {
         upsert,
         findOne,
         disconnect,
-        getAggregateTotal
+        getAggregateTotal,
+        deleteByQuery
     }
 }

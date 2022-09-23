@@ -4,7 +4,7 @@ const {
     upsertTimeEntry,
     getNumbersFromTweet,
     getLastEnteredTweetId,
-    upsertLatestEnteredTweetId, getTotalCampaignMinutes
+    upsertLatestEnteredTweetId, getTotalCampaignMinutes, upsertTimeEntryWeekly, clearWeeklyData
 } = require("./src/service/campaignService");
 const {mongodb} = require("./src/service/mongodbService");
 
@@ -103,9 +103,12 @@ async function runCampaign(req, res) {
         // Need to have someone investigate what's going on
         await mongodb.connect();
 
-        const {total} = await upsertTimeEntry(tweet.twitterUserId, tweet.number, username);
+        const [cumulativeResponse, weeklyResponse] = await Promise.all([
+            upsertTimeEntry(tweet.twitterUserId, tweet.number, username),
+            upsertTimeEntryWeekly(tweet.twitterUserId, tweet.number, username)
+        ]);
         const communityTotal = await getTotalCampaignMinutes();
-        await replyToTweet(tweet.id, `Your entry has been logged. You have logged ${total} total minutes! The community has logged ${communityTotal} minutes toward our goal of one million.`);
+        await replyToTweet(tweet.id, `Your entry has been logged. You have logged ${cumulativeResponse.total} total minutes! The community has logged ${communityTotal} minutes toward our goal of one million.`);
     });
 
     //Update entry with the most recent tweetId so we know where to start our search next time
@@ -115,7 +118,18 @@ async function runCampaign(req, res) {
     console.log("Done");
 }
 
+async function runWeeklyDataCleaner(req, res) {
+    console.log("Clearing weekly data...");
+
+    await mongodb.connect();
+
+    await clearWeeklyData();
+    await mongodb.disconnect();
+    res.send("Done");
+}
+
 module.exports = {
     startBot,
-    runCampaign
+    runCampaign,
+    runWeeklyDataCleaner
 }

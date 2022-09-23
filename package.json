@@ -10,7 +10,7 @@
     "twitter-api-v2": "^1.12.3"
   },
   "scripts": {
-    "start": "functions-framework --target=startBot"
+    "start": "functions-framework --target=runCampaign"
   },
   "repository": {
     "type": "git",

@@ -1,5 +1,5 @@
 require('dotenv').config();
-const {retweet, search, getLatestRetweet, replyToTweet} = require("./src/service/twitterService");
+const {retweet, search, getLatestRetweet, replyToTweet, findUserById} = require("./src/service/twitterService");
 const {
     upsertTimeEntry,
     getNumbersFromTweet,
@@ -82,9 +82,9 @@ async function runCampaign(req, res) {
         if (numbersFromTweet) {
             tweets.push(numbersFromTweet);
         } else {
-            //TODO: This will 403 if the tweet is not unique. I'd like to add the author's username in the response so that it's not static
-            console.log('need 2 reply');
-            await replyToTweet(result.id, `Your tweet was skipped because the bot couldn't parse your entry. @dev_nerd_2 will investigate and follow up.`);
+            const response = await findUserById(result.author_id, {'user.fields': ['name']});
+            const username = response.data.username;
+            await replyToTweet(result.id, `@${username}, Your tweet was skipped because the bot couldn't parse your entry. @dev_nerd_2 will investigate and follow up.`);
         }
     }
     if (tweets.length === 0) {
@@ -96,7 +96,14 @@ async function runCampaign(req, res) {
     //15 mins / 200 requests = 1 request every 4.5 seconds
     //+ 1 to avoid hitting rate limit
     await iterateOverInterval(5500, tweets, async function (tweet) {
-        const {total} = await upsertTimeEntry(tweet.twitterUserId, tweet.number);
+        const response = await findUserById(tweet.twitterUserId, {'user.fields': ['name']});
+        const username = response.data.username;
+
+        //TODO: upsertTimeEntry was failing, claiming the  Client must be connected before running operations.
+        // Need to have someone investigate what's going on
+        await mongodb.connect();
+
+        const {total} = await upsertTimeEntry(tweet.twitterUserId, tweet.number, username);
         const communityTotal = await getTotalCampaignMinutes();
         await replyToTweet(tweet.id, `Your entry has been logged. You have logged ${total} total minutes! The community has logged ${communityTotal} minutes toward our goal of one million.`);
     });

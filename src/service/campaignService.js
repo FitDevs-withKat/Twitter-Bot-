@@ -1,11 +1,15 @@
 const {mongodb} = require("./mongodbService");
 
-async function upsertTimeEntry(authorId, amount, username) {
+async function upsertTimeEntry(authorId, amount, username, collection = undefined) {
     const result = await mongodb.upsert({author_id: authorId}, {
         $inc: {total: parseInt(amount)},
         $set: {username: username}
-    }, "campaign_data");
+    }, collection || "campaign_data");
     return result.value;
+}
+
+async function upsertTimeEntryWeekly(authorId, amount, username) {
+    return upsertTimeEntry(authorId, amount, username, "campaign_data_weekly");
 }
 
 async function getLastEnteredTweetId() {
@@ -22,6 +26,10 @@ function getTotalCampaignMinutes() {
 
 async function upsertLatestEnteredTweetId(tweetId) {
     return mongodb.upsert({}, {$set: {latest_tweet_id: tweetId}}, "campaign_tweet_tracker");
+}
+
+async function clearWeeklyData() {
+    return mongodb.deleteByQuery({}, "campaign_data_weekly");
 }
 
 function getNumbersFromTweet(tweet) {
@@ -45,5 +53,7 @@ module.exports = {
     getNumbersFromTweet,
     upsertLatestEnteredTweetId,
     getLastEnteredTweetId,
-    getTotalCampaignMinutes
+    upsertTimeEntryWeekly,
+    getTotalCampaignMinutes,
+    clearWeeklyData
 }

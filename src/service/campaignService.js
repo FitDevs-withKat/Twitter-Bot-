@@ -1,19 +1,19 @@
-const {mongodb} = require("./mongodbService");
+import {deleteByQuery, findOne, getAggregateTotal, upsert} from "./mongodbService.js";
 
 async function upsertTimeEntry(authorId, amount, username, collection = undefined) {
-    const result = await mongodb.upsert({author_id: authorId}, {
+    const result = await upsert({author_id: authorId}, {
         $inc: {total: parseInt(amount)},
         $set: {username: username}
     }, collection || "campaign_data");
     return result.value;
 }
 
-async function upsertTimeEntryWeekly(authorId, amount, username) {
-    return await upsertTimeEntry(authorId, amount, username, "campaign_data_weekly");
+function upsertTimeEntryWeekly(authorId, amount, username) {
+    return upsertTimeEntry(authorId, amount, username, "campaign_data_weekly");
 }
 
 async function getLastEnteredTweetId() {
-    const result = await mongodb.findOne(undefined, undefined, "campaign_tweet_tracker");
+    const result = await findOne(undefined, undefined, "campaign_tweet_tracker");
     if (!result) {
         return undefined;
     }
@@ -21,15 +21,15 @@ async function getLastEnteredTweetId() {
 }
 
 function getTotalCampaignMinutes() {
-    return mongodb.getAggregateTotal("campaign_data");
+    return getAggregateTotal("campaign_data");
 }
 
 async function upsertLatestEnteredTweetId(tweetId) {
-    return mongodb.upsert({}, {$set: {latest_tweet_id: tweetId}}, "campaign_tweet_tracker");
+    return upsert({}, {$set: {latest_tweet_id: tweetId}}, "campaign_tweet_tracker");
 }
 
 async function clearWeeklyData() {
-    return mongodb.deleteByQuery({}, "campaign_data_weekly");
+    return deleteByQuery({}, "campaign_data_weekly");
 }
 
 function getNumbersFromTweet(tweet) {
@@ -48,7 +48,7 @@ function getNumbersFromTweet(tweet) {
     }
 }
 
-module.exports = {
+export {
     upsertTimeEntry,
     getNumbersFromTweet,
     upsertLatestEnteredTweetId,
@@ -56,4 +56,4 @@ module.exports = {
     upsertTimeEntryWeekly,
     getTotalCampaignMinutes,
     clearWeeklyData
-}
+};

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Fitdevs Twitter Bot",
   "main": "index.js",
+  "type": "module",
   "dependencies": {
     "@google-cloud/functions-framework": "^3.1.2",
     "dotenv": "^16.0.1",

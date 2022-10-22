@@ -1,5 +1,7 @@
-const {MongoClient} = require('mongodb');
+import {MongoClient} from "mongodb";
+import dotenv from 'dotenv';
 
+dotenv.config();
 const uri = process.env.DB_URI;
 const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
 const dbName = 'fitdevs';
@@ -32,6 +34,15 @@ async function findOne(query, options, collection) {
     }
 }
 
+async function deleteByQuery(query, collection) {
+    try {
+        return await client.db(dbName).collection(collection).deleteMany(query);
+    } catch (error) {
+        console.log("Failed to run deleteByQuery with the following query", query, error);
+    }
+}
+
+
 async function connect() {
     try {
         return await client.connect();
@@ -49,12 +60,11 @@ async function disconnect() {
 }
 
 
-module.exports = {
-    mongodb: {
-        connect,
-        upsert,
-        findOne,
-        disconnect,
-        getAggregateTotal
-    }
-}
+export {
+    connect,
+    upsert,
+    findOne,
+    disconnect,
+    getAggregateTotal,
+    deleteByQuery
+};

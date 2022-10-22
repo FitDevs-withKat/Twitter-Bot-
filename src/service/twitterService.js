@@ -1,5 +1,7 @@
-const {TwitterApi} = require("twitter-api-v2");
+import {TwitterApi} from "twitter-api-v2";
+import dotenv from 'dotenv';
 
+dotenv.config();
 const twitter = new TwitterApi({
     appKey: process.env.CONSUMER_KEY,
     appSecret: process.env.CONSUMER_SECRET,
@@ -50,11 +52,11 @@ async function replyToTweet(tweetId, text) {
     }
 }
 
-module.exports = {
+export {
     search,
     retweet,
     getLatestRetweet,
     replyToTweet,
     findUserById
-}
+};
 

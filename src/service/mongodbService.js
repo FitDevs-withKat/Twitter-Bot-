@@ -17,11 +17,15 @@ async function upsert(query, updateQuery, collection) {
 
 //https://www.mongodb.com/docs/drivers/node/current/fundamentals/aggregation/
 async function getAggregateTotal(collection) {
-    const aggCursor = client.db(dbName).collection(collection).aggregate([
-        {$group: {_id: null, total: {$sum: "$total"}}}
-    ]);
-    const {total} = await aggCursor.next();
-    return total;
+    try {
+        const aggCursor = client.db(dbName).collection(collection).aggregate([
+            {$group: {_id: null, total: {$sum: "$total"}}}
+        ]);
+        const {total} = await aggCursor.next();
+        return total;
+    } catch(e) {
+        console.error("Failed to get aggregate total", e);
+    }
 }
 
 async function findOne(query, options, collection) {
@@ -45,7 +49,7 @@ async function connect() {
     try {
         return await client.connect();
     } catch (error) {
-        console.log("Problem connecting to mongo db", error);
+        console.error("Problem connecting to mongo db", error);
     }
 }
 

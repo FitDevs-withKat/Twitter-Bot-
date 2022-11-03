@@ -1,11 +1,16 @@
 const {mongodb} = require("./mongodbService");
 
 async function upsertTimeEntry(authorId, amount, username, collection = undefined) {
-    const result = await mongodb.upsert({author_id: authorId}, {
-        $inc: {total: parseInt(amount)},
-        $set: {username: username}
-    }, collection || "campaign_data");
-    return result.value;
+    try {
+        const result = await mongodb.upsert({author_id: authorId}, {
+            $inc: {total: parseInt(amount)},
+            $set: {username: username}
+        }, collection || "campaign_data");
+        return result.value;
+    } catch (e) {
+        console.error("Error upserting time entry for campaign service", e);
+        throw e;
+    }
 }
 
 async function upsertTimeEntryWeekly(authorId, amount, username) {

@@ -9,7 +9,7 @@ const {
 const {mongodb} = require("./src/service/mongodbService");
 
 async function iterateOverInterval(interval, data, callback) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         let index = 0;
         const intervalId = setInterval(async () => {
             if (data.length < 1 || index === data.length - 1) {
@@ -20,8 +20,11 @@ async function iterateOverInterval(interval, data, callback) {
                 //prevent continuation with empty data
                 return;
             }
-
-            await callback(data[index])
+            try {
+                await callback(data[index])
+            } catch(error) {
+                reject(error);
+            }
             index++;
 
         }, interval);
@@ -95,24 +98,30 @@ async function runCampaign(req, res) {
     }
     //15 mins / 200 requests = 1 request every 4.5 seconds
     //+ 1 to avoid hitting rate limit
-    await iterateOverInterval(5500, tweets, async function (tweet) {
-        const response = await findUserById(tweet.twitterUserId, {'user.fields': ['name']});
-        const username = response.data.username;
+    let lastSuccessfulId;
+    let counter = 0;
+    try {
+        await iterateOverInterval(5500, tweets, async function (tweet) {
+            const response = await findUserById(tweet.twitterUserId, {'user.fields': ['name']});
+            const username = response.data.username;
+            //TODO: upsertTimeEntry was failing, claiming the  Client must be connected before running operations.
+            // Need to have someone investigate what's going on
+            await mongodb.connect();
 
-        //TODO: upsertTimeEntry was failing, claiming the  Client must be connected before running operations.
-        // Need to have someone investigate what's going on
-        await mongodb.connect();
+            const [cumulativeResponse, weeklyResponse] = await Promise.all([
+                upsertTimeEntry(tweet.twitterUserId, tweet.number, username),
+                upsertTimeEntryWeekly(tweet.twitterUserId, tweet.number, username)
+            ]);
+            const communityTotal = await getTotalCampaignMinutes();
+            await replyToTweet(tweet.id, `Your entry has been logged. You have logged ${cumulativeResponse.total} total minutes! The community has logged ${communityTotal} minutes toward our goal of one million.`);
+            lastSuccessfulId = tweet.id;
+        });
+    } catch (e) {
+        console.error(e);
+    }
 
-        const [cumulativeResponse, weeklyResponse] = await Promise.all([
-            upsertTimeEntry(tweet.twitterUserId, tweet.number, username),
-            upsertTimeEntryWeekly(tweet.twitterUserId, tweet.number, username)
-        ]);
-        const communityTotal = await getTotalCampaignMinutes();
-        await replyToTweet(tweet.id, `Your entry has been logged. You have logged ${cumulativeResponse.total} total minutes! The community has logged ${communityTotal} minutes toward our goal of one million.`);
-    });
-
-    //Update entry with the most recent tweetId so we know where to start our search next time
-    await upsertLatestEnteredTweetId(tweets[0].id);
+    //Update entry with the most recently successfully logged tweet, so we know where to start our search next time
+    await upsertLatestEnteredTweetId(lastSuccessfulId);
     await mongodb.disconnect();
     res.send("Bot started");
     console.log("Done");

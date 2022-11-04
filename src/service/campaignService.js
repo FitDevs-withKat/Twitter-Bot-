@@ -18,11 +18,16 @@ async function upsertTimeEntryWeekly(authorId, amount, username) {
 }
 
 async function getLastEnteredTweetId() {
-    const result = await mongodb.findOne(undefined, undefined, "campaign_tweet_tracker");
-    if (!result) {
-        return undefined;
+    try {
+        const result = await mongodb.findOne(undefined, undefined, "campaign_tweet_tracker");
+        if (!result) {
+            return undefined;
+        }
+        return {tweetId: result.latest_tweet_id};
+    } catch (err) {
+        console.error("Unable to get last entered tweet id", err);
+        process.exit(1);
     }
-    return {tweetId: result.latest_tweet_id};
 }
 
 function getTotalCampaignMinutes() {

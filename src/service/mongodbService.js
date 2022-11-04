@@ -10,8 +10,9 @@ async function upsert(query, updateQuery, collection) {
             upsert: true,
             returnDocument: "after"
         });
-    } catch (e) {
-        console.error("Failed to upsert", updateQuery, e)
+    } catch (err) {
+        console.error("Failed to upsert", updateQuery, err);
+        throw err;
     }
 }
 
@@ -23,8 +24,9 @@ async function getAggregateTotal(collection) {
         ]);
         const {total} = await aggCursor.next();
         return total;
-    } catch(e) {
-        console.error("Failed to get aggregate total", e);
+    } catch(err) {
+        console.error("Failed to get aggregate total", err);
+        throw err;
     }
 }
 
@@ -32,7 +34,8 @@ async function findOne(query, options, collection) {
     try {
         return await client.db(dbName).collection(collection).findOne();
     } catch (err) {
-        console.error("Failed to run query: findOne", err)
+        console.error("Failed to run query: findOne", query);
+        throw err;
     }
 }
 
@@ -40,7 +43,8 @@ async function deleteByQuery(query, collection) {
     try {
         return await client.db(dbName).collection(collection).deleteMany(query);
     } catch (error) {
-        console.log("Failed to run deleteByQuery with the following query", query, error);
+        console.error("Failed to run deleteByQuery with the following query", query);
+        throw error;
     }
 }
 
@@ -49,7 +53,8 @@ async function connect() {
     try {
         return await client.connect();
     } catch (error) {
-        console.error("Problem connecting to mongo db", error);
+        console.error("Unable to connect to mongo db", error);
+        process.exit(1);
     }
 }
 
@@ -57,7 +62,7 @@ async function disconnect() {
     try {
         return await client.close();
     } catch (error) {
-        console.log("Problem disconnecting to mongo db", error);
+        console.error("Problem disconnecting to mongo db", error);
     }
 }
 

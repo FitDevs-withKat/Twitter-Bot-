@@ -12,7 +12,8 @@ async function search(query, lastTweetId, options = undefined) {
         //rate limit is 180 requests every 15 minutes
         return await twitter.v2.search(query, {max_results: 100, since_id: lastTweetId, ...options});
     } catch (err) {
-        console.error("Search failed:", err);
+        console.error("Search failed:", query, err);
+        process.exit(1);
     }
 }
 
@@ -21,7 +22,8 @@ async function findUserById(userId, fields = undefined) {
         //rate limit is 900 requests every 15 minutes
         return await twitter.v2.user(userId, fields);
     } catch (err) {
-        console.error("Search for user failed:", err);
+        console.error("Search for user failed:", userId, err);
+        throw err;
     }
 }
 
@@ -31,6 +33,7 @@ async function retweet(tweetId) {
         return await twitter.v2.retweet(process.env.BOT_USER_ID, tweetId);
     } catch (err) {
         console.error("Retweet failed:", err);
+        throw err;
     }
 }
 
@@ -39,6 +42,7 @@ async function getLatestRetweet(options) {
         return await twitter.v2.userTimeline(process.env.BOT_USER_ID, options);
     } catch (err) {
         console.error("Fetching last retweet failed:", err);
+        throw err;
     }
 }
 
@@ -47,6 +51,7 @@ async function replyToTweet(tweetId, text) {
         return await twitter.v2.reply(text, tweetId);
     } catch (err) {
         console.error("Reply failed:", err);
+        throw err;
     }
 }
 

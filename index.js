@@ -12,9 +12,10 @@ async function iterateOverInterval(interval, data, callback) {
     return new Promise((resolve, reject) => {
         let index = 0;
         const intervalId = setInterval(async () => {
-            if (data.length < 1 || index === data.length - 1) {
+            if (data.length < 1 || index === data.length) {
                 clearInterval(intervalId);
                 resolve();
+                return;
             }
             if (!data[index]) {
                 resolve();
@@ -85,7 +86,6 @@ async function runCampaign(req, res) {
 
     const tweets = [];
     const lastEntered = await getLastEnteredTweetId();
-
     //Most recent will be first in the array
     const data = await search('#OneMillionMinutes -is:retweet', lastEntered?.tweetId, {
         expansions: 'author_id'
@@ -112,7 +112,7 @@ async function runCampaign(req, res) {
     }
     //15 mins / 200 requests = 1 request every 4.5 seconds
     //+ 1 to avoid hitting rate limit
-    let lastSuccessfulId;
+    let lastSuccessfulId = lastEntered?.tweetId;
     try {
         await iterateOverInterval(5500, tweets, async function (tweet) {
             const response = await findUserById(tweet.twitterUserId, {'user.fields': ['name']});
@@ -133,8 +133,8 @@ async function runCampaign(req, res) {
         console.error("Failure while iterating through OneMillionMinutes tweets", e);
     }
 
-    //Update entry with the most recently successfully logged tweet, so we know where to start our search next time
     try {
+        //Update entry with the most recently successfully logged tweet, so we know where to start our search next time
         await upsertLatestEnteredTweetId(lastSuccessfulId);
     } catch (err) {
         console.error("Failed to update  latest entered tweet id", lastSuccessfulId, err);

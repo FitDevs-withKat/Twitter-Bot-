@@ -85,6 +85,7 @@ async function runCampaign(req, res) {
     await mongodb.connect();
 
     const tweets = [];
+    const failedTweets = [];
     const lastEntered = await getLastEnteredTweetId();
     //Most recent will be first in the array
     const data = await search('#OneMillionMinutes -is:retweet', lastEntered?.tweetId, {
@@ -100,11 +101,16 @@ async function runCampaign(req, res) {
                 const username = response.data.username;
                 await replyToTweet(result.id, `@${username}, Your tweet was skipped because the bot couldn't parse your entry. @dev_nerd_2 will investigate and follow up.`);
             } catch (err) {
-                console.error("Failure to notify user of skipped tweet", result.author_id, err)
+                console.error(`Failure to notify user ${result.author_id} of skipped tweet id ${result.id}`, err);
+            } finally {
+                failedTweets.push(result.id);
             }
         }
     }
     if (tweets.length === 0) {
+        if (failedTweets.length > 0) {
+            await upsertLatestEnteredTweetId(failedTweets[failedTweets.length - 1]);
+        }
         await mongodb.disconnect();
         console.log("Done");
         res.send("Bot Started but terminated early because there are no new tweets.");
@@ -135,7 +141,11 @@ async function runCampaign(req, res) {
 
     try {
         //Update entry with the most recently successfully logged tweet, so we know where to start our search next time
-        await upsertLatestEnteredTweetId(lastSuccessfulId);
+        if (failedTweets[failedTweets.length - 1 ] > lastSuccessfulId) {
+            await upsertLatestEnteredTweetId(failedTweets[failedTweets.length - 1]);
+        } else {
+            await upsertLatestEnteredTweetId(lastSuccessfulId);
+        }
     } catch (err) {
         console.error("Failed to update  latest entered tweet id", lastSuccessfulId, err);
         process.exit(1);

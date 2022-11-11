@@ -12,20 +12,19 @@ async function iterateOverInterval(interval, data, callback) {
     return new Promise((resolve, reject) => {
         let index = 0;
         const intervalId = setInterval(async () => {
-            if (data.length < 1 || index === data.length) {
+            if (data.length === 0 || index === data.length) {
                 clearInterval(intervalId);
-                resolve();
-                return;
+                return resolve();
             }
             if (!data[index]) {
-                resolve();
                 //prevent continuation with empty data
-                return;
+                clearInterval(intervalId);
+                return resolve();
             }
             try {
                 await callback(data[index])
             } catch (error) {
-                reject(error);
+                return reject(error);
             }
             index++;
 
@@ -112,7 +111,7 @@ async function runCampaign(req, res) {
             await upsertLatestEnteredTweetId(failedTweets[failedTweets.length - 1]);
         }
         await mongodb.disconnect();
-        console.log("Done");
+        console.log("Done - Bot Started but terminated early because there are no new tweets.");
         res.send("Bot Started but terminated early because there are no new tweets.");
         return;
     }
@@ -141,7 +140,8 @@ async function runCampaign(req, res) {
 
     try {
         //Update entry with the most recently successfully logged tweet, so we know where to start our search next time
-        if (failedTweets[failedTweets.length - 1 ] > lastSuccessfulId) {
+        //note: tweet ids are strings, so we convert them to numbers for numeric comparison
+        if (failedTweets.length > 0 && BigInt(failedTweets[failedTweets.length - 1]) > BigInt(lastSuccessfulId)) {
             await upsertLatestEnteredTweetId(failedTweets[failedTweets.length - 1]);
         } else {
             await upsertLatestEnteredTweetId(lastSuccessfulId);

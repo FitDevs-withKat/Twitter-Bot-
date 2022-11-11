@@ -117,6 +117,8 @@ async function runCampaign(req, res) {
     }
     //15 mins / 200 requests = 1 request every 4.5 seconds
     //+ 1 to avoid hitting rate limit
+    //reverse so that the lastSuccessfulId is set to be the most recent Id since tweets are most recent first
+    tweets.reverse();
     let lastSuccessfulId = lastEntered?.tweetId;
     try {
         await iterateOverInterval(5500, tweets, async function (tweet) {

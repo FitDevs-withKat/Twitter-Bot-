@@ -4,24 +4,28 @@ const {
     upsertTimeEntry,
     getNumbersFromTweet,
     getLastEnteredTweetId,
-    upsertLatestEnteredTweetId, getTotalCampaignMinutes
+    upsertLatestEnteredTweetId, getTotalCampaignMinutes, upsertTimeEntryWeekly, clearWeeklyData
 } = require("./src/service/campaignService");
 const {mongodb} = require("./src/service/mongodbService");
 
 async function iterateOverInterval(interval, data, callback) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         let index = 0;
         const intervalId = setInterval(async () => {
-            if (data.length < 1 || index === data.length - 1) {
+            if (data.length === 0 || index === data.length) {
                 clearInterval(intervalId);
-                resolve();
+                return resolve();
             }
             if (!data[index]) {
                 //prevent continuation with empty data
-                return;
+                clearInterval(intervalId);
+                return resolve();
             }
-
-            await callback(data[index])
+            try {
+                await callback(data[index])
+            } catch (error) {
+                return reject(error);
+            }
             index++;
 
         }, interval);
@@ -45,8 +49,13 @@ async function startBot(req, res) {
 
     const latestId = response.tweets?.[0]?.referenced_tweets[0]?.id;
     const sortedTweets = [];
-    const data = await search("#FitDevs -is:retweet", latestId);
-
+    let data;
+    try {
+        data = await search("#FitDevs -is:retweet", latestId);
+    } catch (err) {
+        console.error("Failed to fetch fitdevs tweets", err);
+        process.exit(1);
+    }
     for await (const result of data) {
         sortedTweets.push(result);
     }
@@ -56,12 +65,16 @@ async function startBot(req, res) {
 
     //15 mins / 50 requests = 1 request every 18 seconds
     //+ 1 to avoid hitting rate limit
-    await iterateOverInterval(19000, sortedTweets, async function (tweet) {
-        console.info('Retweeting tweet ID', tweet?.id);
-        await retweet(tweet.id);
-    });
+    try {
+        await iterateOverInterval(19000, sortedTweets, async function (tweet) {
+            console.info('Retweeting tweet ID', tweet?.id);
+            await retweet(tweet.id);
+        });
+    } catch (e) {
+        console.error("Failure occurred during retweeting, exiting early.");
+        process.exit(1);
+    }
     res.send("Bot Done");
-
     console.log("Done")
 }
 
@@ -71,8 +84,8 @@ async function runCampaign(req, res) {
     await mongodb.connect();
 
     const tweets = [];
+    const failedTweets = [];
     const lastEntered = await getLastEnteredTweetId();
-
     //Most recent will be first in the array
     const data = await search('#OneMillionMinutes -is:retweet', lastEntered?.tweetId, {
         expansions: 'author_id'
@@ -82,40 +95,85 @@ async function runCampaign(req, res) {
         if (numbersFromTweet) {
             tweets.push(numbersFromTweet);
         } else {
-            const response = await findUserById(result.author_id, {'user.fields': ['name']});
-            const username = response.data.username;
-            await replyToTweet(result.id, `@${username}, Your tweet was skipped because the bot couldn't parse your entry. @dev_nerd_2 will investigate and follow up.`);
+            try {
+                const response = await findUserById(result.author_id, {'user.fields': ['name']});
+                const username = response.data.username;
+                await replyToTweet(result.id, `@${username}, Your tweet was skipped because the bot couldn't parse your entry. @dev_nerd_2 will investigate and follow up.`);
+            } catch (err) {
+                console.error(`Failure to notify user ${result.author_id} of skipped tweet id ${result.id}`, err);
+            } finally {
+                failedTweets.push(result.id);
+            }
         }
     }
     if (tweets.length === 0) {
+        if (failedTweets.length > 0) {
+            await upsertLatestEnteredTweetId(failedTweets[failedTweets.length - 1]);
+        }
         await mongodb.disconnect();
-        console.log("Done");
+        console.log("Done - Bot Started but terminated early because there are no new tweets.");
         res.send("Bot Started but terminated early because there are no new tweets.");
         return;
     }
     //15 mins / 200 requests = 1 request every 4.5 seconds
     //+ 1 to avoid hitting rate limit
-    await iterateOverInterval(5500, tweets, async function (tweet) {
-        const response = await findUserById(tweet.twitterUserId, {'user.fields': ['name']});
-        const username = response.data.username;
+    //reverse so that the lastSuccessfulId is set to be the most recent Id since tweets are most recent first
+    tweets.reverse();
+    let lastSuccessfulId = lastEntered?.tweetId;
+    try {
+        await iterateOverInterval(5500, tweets, async function (tweet) {
+            const response = await findUserById(tweet.twitterUserId, {'user.fields': ['name']});
+            const username = response.data.username;
+            //TODO: upsertTimeEntry was failing, claiming the  Client must be connected before running operations.
+            // Need to have someone investigate what's going on
+            await mongodb.connect();
 
-        //TODO: upsertTimeEntry was failing, claiming the  Client must be connected before running operations.
-        // Need to have someone investigate what's going on
-        await mongodb.connect();
+            const [cumulativeResponse, weeklyResponse] = await Promise.all([
+                upsertTimeEntry(tweet.twitterUserId, tweet.number, username),
+                upsertTimeEntryWeekly(tweet.twitterUserId, tweet.number, username)
+            ]);
+            const communityTotal = await getTotalCampaignMinutes();
+            await replyToTweet(tweet.id, `Your entry has been logged. You have logged ${cumulativeResponse.total} total minutes! The community has logged ${communityTotal} minutes toward our goal of one million.`);
+            lastSuccessfulId = tweet.id;
+        });
+    } catch (e) {
+        console.error("Failure while iterating through OneMillionMinutes tweets", e);
+    }
 
-        const {total} = await upsertTimeEntry(tweet.twitterUserId, tweet.number, username);
-        const communityTotal = await getTotalCampaignMinutes();
-        await replyToTweet(tweet.id, `Your entry has been logged. You have logged ${total} total minutes! The community has logged ${communityTotal} minutes toward our goal of one million.`);
-    });
-
-    //Update entry with the most recent tweetId so we know where to start our search next time
-    await upsertLatestEnteredTweetId(tweets[0].id);
+    try {
+        //Update entry with the most recently successfully logged tweet, so we know where to start our search next time
+        //note: tweet ids are strings, so we convert them to numbers for numeric comparison
+        if (failedTweets.length > 0 && BigInt(failedTweets[failedTweets.length - 1]) > BigInt(lastSuccessfulId)) {
+            await upsertLatestEnteredTweetId(failedTweets[failedTweets.length - 1]);
+        } else {
+            await upsertLatestEnteredTweetId(lastSuccessfulId);
+        }
+    } catch (err) {
+        console.error("Failed to update  latest entered tweet id", lastSuccessfulId, err);
+        process.exit(1);
+    }
     await mongodb.disconnect();
     res.send("Bot started");
     console.log("Done");
 }
 
+async function runWeeklyDataCleaner(req, res) {
+    console.log("Clearing weekly data...");
+
+    await mongodb.connect();
+
+    try {
+        await clearWeeklyData();
+    } catch (err) {
+        console.error("Unable to clear weekly data");
+        process.exit(1);
+    }
+    await mongodb.disconnect();
+    res.send("Done");
+}
+
 module.exports = {
     startBot,
-    runCampaign
+    runCampaign,
+    runWeeklyDataCleaner
 }

@@ -15,16 +15,13 @@ BOT_USER_ID=1549040078823034882
 ```
 
 You can manually add a line of code to call the function `startBot` in index.js then run `node index.js` in your terminal to start the application. **Please be cautious running this bot locally while the cron-job is active.**
-## Cron-Job 
-By utilizing a free third-party site called [cron-job](https://cron-job.org/), we can call our cloud function via a REST API endpoint to run at a customized interval (currently configured to run every hour). 
 
-
-## Google Cloud
-Our bot is uploaded onto Google Cloud as a cloud function. The bot will start up whenever it is called by Cron-Job.
+## Deployment
+Our bot is uploaded onto Google Cloud as multiple Cloud Functions. Each separate functionality of the bot will have its own Cloud Function. The functions will automatically run when corresponding Cloud Endpoints are called on interval by Cloud Schedulers. 
 A REST endpoint is exposed through an API Gateway that is separate from the cloud function. This gives us the ability for our function to be called by cron-job with an API Key.
-The reason this is necessary is because Google Cloud Functions don't natively support long-lived authentication.
+See below for a visual drawing of the cloud architecture.
+![image](https://github.com/Kyle-Kerlew/Twitter-Bot-/assets/15034066/bb44fbe2-18c4-47b2-b1c4-df80d113a9d5)
 
-## Deploying
 
 ## Feature Compliance
 All functionality new or old must comply with [Twitter's rules](https://help.twitter.com/en/rules-and-policies/twitter-automation), [developer agreement](https://developer.twitter.com/en/developer-terms/agreement-and-policy), and [automation rules](https://help.twitter.com/en/rules-and-policies/twitter-rules). Failure to do so will cause suspension or termination of our project from Twitter.
